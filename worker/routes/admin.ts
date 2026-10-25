@@ -179,6 +179,10 @@ admin.post("/panel/config", async (c) => {
   if (!check.ok) return err(c, 400, check.code, { message: check.message });
 
   await setSettings(c.env, { panel_base: b.base.trim().replace(/\/+$/, ""), panel_api_key: b.key.trim() });
+  
+  // Force an immediate sync so the new panel is used right away
+  await startSync(c.env, { force: true, strict: true });
+
   return c.json({ ok: true, message: "Panel connected and saved successfully!" });
 });
 
