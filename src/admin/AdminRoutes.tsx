@@ -1,50 +1,21 @@
-// Owner-only admin panel (English only, per AGENTS.md). The server checks the owner's Telegram ID on every /api/admin call.
-// Same primitives as the customer screens (spec §5.13): Screen + LargeTitle + Section/List/Row, saves on the MainButton.
 import type { ComponentChildren, JSX } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { platformName } from "../../shared/platforms";
 import type { OrderView } from "../../shared/types";
 import { api, ApiError, clearApiCache } from "../api";
-import { balanceStars, MAX_STARS_PER_PAYMENT, shownStars } from "../../shared/stars";
+import { MAX_STARS_PER_PAYMENT, shownStars } from "../../shared/stars";
 import { dateTime, num, starsRate } from "../format";
 import { Icon, type IconName } from "../icons";
 import { refreshMe } from "../me";
 import { back as goBack, enc, navigate } from "../router";
 import { confirmDialog, haptic, openLink, type ButtonSpec } from "../tg";
 import { AdminBranding } from "./Branding";
-import { AdminsSection, PanelConfigSection, type Owners } from "./Access";
-
-// NEW: Import the new Admin panels
-import { PanelConfig } from "./PanelConfig";
+import { AdminsSection, type Owners } from "./Access";
 import { ManualPayments } from "./ManualPayments";
-
 import {
-  BackNav,
-  BottomButtons,
-  Chip,
-  EmptyState,
-  ErrorState,
-  Field,
-  LargeTitle,
-  List,
-  Notice,
-  Num,
-  PlatformLogo,
-  Presets,
-  Progress,
-  Row,
-  Screen,
-  SearchField,
-  Section,
-  Seg,
-  Sheet,
-  Skeleton,
-  SkeletonList,
-  StatusPill,
-  Switch,
-  errText,
-  toast,
-  useAsync,
+  BackNav, BottomButtons, Chip, EmptyState, ErrorState, Field, LargeTitle, List, Notice,
+  Num, PlatformLogo, Presets, Progress, Row, Screen, SearchField, Section, Seg, Sheet,
+  Skeleton, SkeletonList, StatusPill, Switch, errText, toast, useAsync,
 } from "../ui";
 
 export function AdminRoutes({ parts, query }: { parts: string[]; query: URLSearchParams }) {
@@ -60,28 +31,19 @@ export function AdminRoutes({ parts, query }: { parts: string[]; query: URLSearc
   if (a === "orders") return <AdminOrders />;
   if (a === "branding") return <AdminBranding />;
   if (a === "settings") return <AdminSettings />;
-  
-  // NEW: Route handling for the new screens
-  if (a === "panel") return <PanelConfig />;
+  if (a === "panel") return <AdminPanel />;
   if (a === "manual_payments") return <ManualPayments />;
-
   return <AdminHome />;
 }
 
-// ---------------- helpers ----------------
-
-const NP_WALLET = "https://notpanel.com/dashboard/wallet";
 const MAX_MARKUP = 1000;
 const ONE_USD = 1_000_000;
-
 const pct = (n: number) => `+${+n.toFixed(1)}%`;
-/** Signed change with a real minus sign, e.g. "+2.1%" / "−1.4%". */
 const delta = (d: number) => `${d > 0 ? "+" : d < 0 ? "−" : ""}${Math.abs(d).toFixed(1)}%`;
 const plural = (n: number, one: string, many = `${one}s`) => `${num(n)} ${n === 1 ? one : many}`;
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-/** Same rounding as the worker's sellRate(): cost plus markup, rounded up to the next 100 micro-USD per 1K. */
 const sellFor = (cost: number, markupPct: number) => Math.ceil((cost * (1 + Math.max(0, markupPct) / 100)) / 100 - 1e-9) * 100;
-/** micro-USD → "$1.23" (3-4 decimals under $0.10). Admin keeps its own copy: the user screens no longer show USD. */
+
 function money(micro: number): string {
   const v = Math.abs(micro) / 1e6;
   const digits = v === 0 || v >= 0.1 ? 2 : v >= 0.01 ? 3 : 4;
@@ -89,47 +51,24 @@ function money(micro: number): string {
   if (digits > 2) t = t.replace(/(\.\d\d\d*?)0+$/, "$1");
   return `${micro < 0 ? "−" : ""}$${t}`;
 }
-/** Whole Telegram Stars, e.g. "1,250 ⭐" (Stars paid in Telegram, settings in Stars). */
 const starsText = (n: number) => `${num(Math.round(n))} ⭐`;
-/** A micro-USD amount as users see it in Stars (rounded up). Money is stored in micro-USD everywhere. */
 const usdStars = (micro: number) => starsText(shownStars(micro, starsRate()));
-/** A micro-USD balance, or a sum of credits, as users see it in Stars (rounded down). */
-const balStars = (micro: number) => starsText(balanceStars(micro, starsRate()));
 const invalidate = () => clearApiCache();
 export const fail = (e: unknown) => toast(errText(e), "error");
 
-export function Page({
-  back,
-  title,
-  sub,
-  size = "title",
-  lead,
-  overlay,
-  main = null,
-  children,
-}: {
-  back: string;
-  title: string;
-  sub?: ComponentChildren;
-  size?: "large" | "title" | "title2";
-  lead?: ComponentChildren;
-  overlay?: ComponentChildren;
-  /** Primary bottom action (Save…); a Back button is always shown next to it */
-  main?: ButtonSpec | null;
-  children: ComponentChildren;
+export function Page({ back, title, sub, size = "title", lead, overlay, main = null, children }: {
+  back: string; title: string; sub?: ComponentChildren; size?: "large" | "title" | "title2";
+  lead?: ComponentChildren; overlay?: ComponentChildren; main?: ButtonSpec | null; children: ComponentChildren;
 }) {
   return (
     <>
       <BackNav to={back} />
-      <Screen
-        bottom="native"
-        overlay={
-          <>
-            {overlay}
-            <BottomButtons main={main} secondary={{ text: "Back", onClick: () => goBack(back) }} />
-          </>
-        }
-      >
+      <Screen bottom="native" overlay={
+        <>
+          {overlay}
+          <BottomButtons main={main} secondary={{ text: "Back", onClick: () => goBack(back) }} />
+        </>
+      }>
         <LargeTitle size={size} title={title} sub={sub} lead={lead} />
         {children}
       </Screen>
@@ -143,15 +82,8 @@ function Loader<T>({ res, skeleton, children }: { res: { data: T | undefined; er
   return <>{children(res.data)}</>;
 }
 
-interface Paged<T> {
-  items: T[];
-  next: string | number | null;
-}
+interface Paged<T> { items: T[]; next: string | number | null; }
 
-/**
- * Cursor-paged admin list: loads `url` (debounced, newest request wins), then "Show more" appends the next page
- * with `&<cursorKey>=<next>`. `extra` is the first response (e.g. cached totals). `url === null` keeps it idle.
- */
 function usePaged<T, X = unknown>(url: string | null, delay = 0, cursorKey = "before") {
   const [items, setItems] = useState<T[] | null>(null);
   const [next, setNext] = useState<Paged<T>["next"]>(null);
@@ -161,31 +93,19 @@ function usePaged<T, X = unknown>(url: string | null, delay = 0, cursorKey = "be
   const [tick, setTick] = useState(0);
   const seq = useRef(0);
   useEffect(() => {
-    if (url === null) {
-      seq.current++;
-      setItems(null);
-      return;
-    }
+    if (url === null) { seq.current++; setItems(null); return; }
     const n = ++seq.current;
     setErr(null);
-    const id = setTimeout(
-      () =>
-        api<Paged<T> & X>(url).then(
-          (r) => {
-            if (n !== seq.current) return;
-            setItems(r.items);
-            setNext(r.next);
-            setExtra(r);
-            setBusy(false);
-          },
-          (e) => {
-            if (n !== seq.current) return;
-            setItems(null);
-            setErr(e);
-          },
-        ),
-      delay,
-    );
+    const id = setTimeout(() => api<Paged<T> & X>(url).then(
+      (r) => {
+        if (n !== seq.current) return;
+        setItems(r.items); setNext(r.next); setExtra(r); setBusy(false);
+      },
+      (e) => {
+        if (n !== seq.current) return;
+        setItems(null); setErr(e);
+      },
+    ), delay);
     return () => clearTimeout(id);
   }, [url, tick]);
   const more = async () => {
@@ -194,31 +114,19 @@ function usePaged<T, X = unknown>(url: string | null, delay = 0, cursorKey = "be
     setBusy(true);
     try {
       const r = await api<Paged<T>>(`${url}${url.includes("?") ? "&" : "?"}${cursorKey}=${enc(String(next))}`);
-      if (n === seq.current) {
-        setItems((l) => [...(l ?? []), ...r.items]);
-        setNext(r.next);
-      }
-    } catch (e) {
-      fail(e);
-    }
+      if (n === seq.current) { setItems((l) => [...(l ?? []), ...r.items]); setNext(r.next); }
+    } catch (e) { fail(e); }
     setBusy(false);
   };
-  /** Reload from the first page, keeping the current rows on screen meanwhile. */
-  const reload = () => setTick((t) => t + 1);
-  /** Clears the rows so the skeleton shows (used when a filter chip changes). */
-  const reset = () => setItems(null);
-  return { items, next, extra, err, busy, more, reload, reset };
+  return { items, next, extra, err, busy, more, reload: () => setTick((t) => t + 1), reset: () => setItems(null) };
 }
 
 function ShowMore({ next, busy, onClick }: { next: unknown; busy: boolean; onClick: () => void }) {
   return next !== null && next !== undefined ? (
-    <Chip label="Show more" disabled={busy} onClick={onClick}>
-      {busy ? "Loading…" : "Show more"}
-    </Chip>
+    <Chip label="Show more" disabled={busy} onClick={onClick}>{busy ? "Loading…" : "Show more"}</Chip>
   ) : null;
 }
 
-/** One key/value line in a `dl.card`. With `id`, the label focuses that input. */
 export function Kv({ label, id, children }: { label: string; id?: string; children: ComponentChildren }) {
   return (
     <div class="kv">
@@ -238,24 +146,20 @@ function Stat({ label, ok, sub, wide, children }: { label: string; ok?: boolean;
   );
 }
 
-/** "Example: a $1.00 NotPanel service sells for $1.40." */
 function Example({ markup }: { markup: number }) {
   return (
     <>
-      Example: a <Num>{money(ONE_USD)}</Num> NotPanel service sells for <Num>{money(sellFor(ONE_USD, markup))}</Num>.
+      Example: a <Num>{money(ONE_USD)}</Num> panel service sells for <Num>{money(sellFor(ONE_USD, markup))}</Num>.
     </>
   );
 }
 
-/** Markup stepper used for default, platform, category and service markups. */
 function MarkupEditor({ value, onChange, presets = [20, 30, 50, 100], class: cls }: { value: number; onChange: (n: number) => void; presets?: number[]; class?: string }) {
-  // Raw text while the field has focus; "40%" otherwise.
   const [text, setText] = useState<string | null>(null);
   const shown = String(+value.toFixed(2));
   const step = (dir: 1 | -1) => {
     const next = Math.max(0, Math.min(MAX_MARKUP, Math.round(value + dir * 5)));
-    if ((dir < 0 && next === 0) || (dir > 0 && next === MAX_MARKUP)) haptic.edge();
-    else haptic.select();
+    if ((dir < 0 && next === 0) || (dir > 0 && next === MAX_MARKUP)) haptic.edge(); else haptic.select();
     if (next !== value) onChange(next);
   };
   return (
@@ -266,13 +170,218 @@ function MarkupEditor({ value, onChange, presets = [20, 30, 50, 100], class: cls
         </button>
         <div class="qty-mid">
           <input
-            class="qty-input num-l"
-            aria-label="Markup percent"
-            inputMode="decimal"
-            enterKeyHint="done"
-            dir="ltr"
-            autoComplete="off"
+            class="qty-input num-l" aria-label="Markup percent" inputMode="decimal" enterKeyHint="done" dir="ltr" autoComplete="off"
             value={text ?? `${shown}%`}
+            onFocus={(e) => { const el = e.currentTarget; setText(shown); requestAnimationFrame(() => el.select()); }}
+            onBlur={() => setText(null)}
+            onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+            onInput={(e) => {
+              const raw = e.currentTarget.value.replace(/[^\d.]/g, "");
+              setText(raw); onChange(Math.max(0, Math.min(MAX_MARKUP, Number(raw) || 0)));
+            }}
+          />
+          <span class="qty-unit">on top of panel prices</span>
+        </div>
+        <button type="button" class="iconbtn lg qty-btn" aria-label="Raise markup by 5%" onClick={() => step(1)}>
+          <Icon name="plus" size={20} stroke={2.4} />
+        </button>
+      </div>
+      <Presets value={presets.includes(value) ? value : null} options={presets.map((p): [number, string] => [p, `${p}%`])} onChange={onChange} label="Markup presets" />
+    </div>
+  );
+}
+
+interface Overview {
+  npBalance: number | null;
+  npError: string | null;
+  lowBalance: number;
+  today: { orders: number; salesStars: number; sales: number; profit: number };
+  users: number;
+  referralsJoined?: number;
+  openOrders: number;
+  needsAttention: number;
+  defaultMarkup: number;
+  lastSync: { at: number; total: number; added: number; updated: number; removed: number; priceUp: number; priceDown: number; unchanged?: boolean; error?: string } | null;
+}
+
+const MANAGE: [string, IconName, string, string][] = [
+  ["Services & prices", "sliders", "var(--lavender-strong)", "/admin/prices"],
+  ["Price changes", "chart", "var(--sky)", "/admin/changes"],
+  ["Payments", "wallet", "var(--lime)", "/admin/payments"],
+  ["Users", "users", "var(--pink)", "/admin/users"],
+  ["Referrals", "star", "var(--cream)", "/admin/referrals"],
+  ["All orders", "list", "var(--sky)", "/admin/orders"],
+  ["Branding", "spark", "var(--pink)", "/admin/branding"],
+  ["Settings & connection", "plug", "var(--lavender)", "/admin/settings"],
+  ["Panel API", "plug", "var(--sky)", "/admin/panel"],
+  ["Manual Payments", "wallet", "var(--lime)", "/admin/manual_payments"],
+];
+
+function syncLine(l: NonNullable<Overview["lastSync"]>) {
+  const what = l.error ? `failed: ${l.error}` : l.unchanged ? "no changes" : `${plural(l.total, "service")}, ${num(l.priceUp)} prices up, ${num(l.priceDown)} down`;
+  return `Last price sync ${dateTime(l.at)} · ${what}`;
+}
+
+function AdminHome() {
+  const res = useAsync(() => api<Overview>("/admin/overview"), []);
+  return (
+    <Page back="/profile" title="Admin" sub="Only you can see this" size="large">
+      <Loader res={res} skeleton={<><Skeleton h={152} radius={20} /><Skeleton h={76} radius={16} /><SkeletonList rows={6} /></>}>
+        {(o) => {
+          const low = o.npBalance !== null && o.npBalance < o.lowBalance;
+          const value = (href: string) => href === "/admin/prices" ? <Num>{pct(o.defaultMarkup)}</Num> : href === "/admin/users" ? num(o.users) : href === "/admin/referrals" ? num(o.referralsJoined ?? 0) : href === "/admin/orders" && o.openOrders ? `${num(o.openOrders)} open` : undefined;
+          const n = o.needsAttention;
+          return (
+            <>
+              <div class="card pad svc-card rise">
+                <div class="head">
+                  <span class="tile md brand" aria-hidden="true"><Icon name="plug" size={20} stroke={1.8} /></span>
+                  <div><b class="t-headline">Your panel account</b></div>
+                  <span class={`status ${o.npError ? "st-cancel" : "st-done"}`}>{o.npError ? "Error" : "Connected"}</span>
+                </div>
+                <div class="head">
+                  <div>
+                    <span>Panel balance</span>
+                    <b class="num-m">{o.npBalance !== null ? <Num>{money(o.npBalance)}</Num> : "—"}</b>
+                  </div>
+                </div>
+                {o.npError ? <Notice tone="error">{o.npError}</Notice> : null}
+                {low ? <Notice tone="warn">Low balance: orders will fail when your panel balance runs out.</Notice> : null}
+              </div>
+              <Section header="Today">
+                <div class="grid2 stagger">
+                  <Stat label="Orders"><Num>{num(o.today.orders)}</Num></Stat>
+                  <Stat label="Sales" sub={<><Num>{money(o.today.sales)}</Num></>}><Num>{starsText(o.today.salesStars)}</Num></Stat>
+                  <Stat label="Profit (USD)" ok wide><Num>{money(o.today.profit)}</Num></Stat>
+                </div>
+              </Section>
+              {n ? (
+                <Notice tone="warn" onClick={() => navigate("/admin/prices?q=attention")}>
+                  {plural(n, "service")} {n === 1 ? "is" : "are"} hidden because {n === 1 ? "its" : "their"} fixed price is below cost. <b>Review</b>
+                </Notice>
+              ) : null}
+              <Section header="Manage" footer={o.lastSync ? syncLine(o.lastSync) : undefined}>
+                <List stagger>
+                  {MANAGE.map(([title, icon, plate, href]) => <Row key={href} icon={icon} plate={plate} title={title} href={href} value={value(href)} />)}
+                </List>
+              </Section>
+            </>
+          );
+        }}
+      </Loader>
+    </Page>
+  );
+}
+
+interface AdminPlatformRow { slug: string; name: string; count: number; enabledServices: number; enabled: boolean; markupPct: number | null; }
+interface AdminCategoryRow { name: string; count: number; enabledServices: number; enabled: boolean; markupPct: number | null; }
+interface AdminServiceRow { id: number; name: string; customName: string | null; platform: string; category: string; cost: number; prevCost: number | null; sell: number; sellStars: number; starsPerUsd: number; markup: number; markupPct: number | null; fixedRate: number | null; min: number; max: number; enabled: boolean; }
+
+const onSale = (x: { enabledServices: number; count: number; enabled: boolean }) => `${num(x.enabledServices)} of ${num(x.count)} on sale${x.enabled ? "" : " · hidden"}`;
+
+function AdminPrices({ q: initialQ }: { q: string }) {
+  const attention = initialQ === "attention";
+  const settings = useAsync(() => api<{ default_markup_pct: number }>("/admin/settings"), []);
+  const platforms = useAsync(() => (attention ? Promise.resolve([] as AdminPlatformRow[]) : api<AdminPlatformRow[]>("/admin/platforms")), []);
+  const [markup, setMarkup] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [q, setQ] = useState(attention ? "" : initialQ);
+  const [edit, setEdit] = useState<AdminServiceRow | null>(null);
+  const pg = usePaged<AdminServiceRow>(attention ? "/admin/services?attention=1" : q.trim().length >= 2 ? `/admin/services?q=${enc(q.trim())}` : null, attention ? 0 : 300, "offset");
+  const results = pg.items;
+  const search = pg.reload;
+
+  useEffect(() => { if (settings.data) setMarkup(settings.data.default_markup_pct); }, [settings.data]);
+
+  const dirty = markup !== null && !!settings.data && markup !== settings.data.default_markup_pct;
+  const save = async () => {
+    if (markup === null || !settings.data) return;
+    setSaving(true);
+    try {
+      await api("/admin/settings", { method: "PUT", body: { default_markup_pct: markup } });
+      invalidate();
+      settings.set({ ...settings.data, default_markup_pct: markup });
+      toast(`Default markup saved: ${pct(markup)}`, "ok");
+      if (results) search();
+    } catch (e) { fail(e); }
+    setSaving(false);
+  };
+
+  const list = attention || results ? (
+    <Section header={attention ? undefined : "Services"}>
+      {results ? (
+        <>
+          <AdminServiceList items={results} onEdit={setEdit} onChanged={search} empty={attention ? { title: "Nothing needs attention", body: "Every fixed price is above cost." } : { title: `No services match “${q.trim()}”`, body: "Try another name or a service ID." }} />
+          <ShowMore next={pg.next} busy={pg.busy} onClick={pg.more} />
+        </>
+      ) : pg.err ? <ErrorState error={pg.err} onRetry={search} /> : <SkeletonList rows={5} lead="none" />}
+    </Section>
+  ) : (
+    <Section header="Platforms">
+      <Loader res={platforms} skeleton={<SkeletonList rows={6} lead="logo" />}>
+        {(rows) => rows.length ? (
+          <List stagger>
+            {rows.map((p) => (
+              <Row key={p.slug} lead={<PlatformLogo slug={p.slug} size={36} radius={10} />} title={p.name} meta={onSale(p)} value={p.markupPct !== null ? <Num>{pct(p.markupPct)}</Num> : undefined} href={`/admin/prices/${enc(p.slug)}`} />
+            ))}
+          </List>
+        ) : <EmptyState compact art="search" title="No platforms yet" body="They appear after the first price sync." />}
+      </Loader>
+    </Section>
+  );
+
+  return (
+    <Page back="/admin" title={attention ? "Hidden services" : "Services & prices"} sub={attention ? "Their fixed price is below cost. Tap one to change its price." : "Sell price = cost + markup"} main={dirty ? { text: `Save markup ${pct(markup!)}`, onClick: save, progress: saving } : null} overlay={edit ? <ServiceEditSheet s={edit} onClose={() => setEdit(null)} onSaved={() => (setEdit(null), search())} /> : null}>
+      {!attention ? (
+        <Section header="Default markup" footer={markup !== null ? <><Example markup={markup} /> Platforms, categories and services can set their own.</> : undefined}>
+          {settings.error ? <ErrorState compact error={settings.error} onRetry={settings.reload} /> : markup !== null ? <MarkupEditor class="rise" value={markup} onChange={setMarkup} /> : <Skeleton h={156} radius={20} />}
+        </Section>
+      ) : null}
+      {!attention ? <SearchField value={q} onInput={setQ} placeholder="Find a service by name or ID" /> : null}
+      {list}
+    </Page>
+  );
+}
+
+type RuleSrc = { enabled: boolean; markupPct: number | null };
+
+function useRule(platform: string, category: string | undefined, src: RuleSrc | undefined, defaultMarkup: number | undefined, onSaved: () => void): { body: JSX.Element; main: ButtonSpec | null } {
+  const what = category ? "category" : "platform";
+  const [show, setShow] = useState<boolean | null>(null);
+  const [own, setOwn] = useState<boolean | null>(null);
+  const [value, setValue] = useState<number | null>(null);
+  const [pending, setPending] = useState<{ v: number | null } | null>(null);
+  const [saving, setSaving] = useState(false);
+  useEffect(() => setShow(null), [src?.enabled]);
+  useEffect(() => { setOwn(null); setValue(null); setPending(null); }, [src?.markupPct]);
+
+  if (!src || defaultMarkup === undefined) return { body: <Skeleton h={112} radius={20} />, main: null };
+
+  const base = pending ? pending.v : src.markupPct;
+  const ownOn = own ?? base !== null;
+  const val = value ?? base ?? defaultMarkup;
+  const shown = show ?? src.enabled;
+  const put = (body: Record<string, unknown>) => api("/admin/rule", { method: "PUT", body: { platform, category: category ?? "", ...body } }).then(() => { invalidate(); onSaved(); });
+
+  const toggleShow = (v: boolean) => { setShow(v); put({ enabled: v }).catch((e) => { setShow(null); fail(e); }); };
+  const toggleOwn = (v: boolean) => { setOwn(v); if (v || base === null) return; put({ markupPct: null }).then(() => setPending({ v: null }), (e) => { setOwn(null); fail(e); }); };
+  const save = async () => { setSaving(true); try { await put({ markupPct: val }); setPending({ v: val }); toast(`${cap(what)} markup saved: ${pct(val)}`, "ok"); } catch (e) { fail(e); } setSaving(false); };
+
+  const dirty = ownOn && (base === null || val !== base);
+  const body = (
+    <Section footer={ownOn ? <Example markup={val} /> : undefined}>
+      <List>
+        <Row toggle={{ on: shown, onChange: toggleShow }} title={`Show this ${what}`} meta={shown ? "Customers can order from it" : "Hidden from customers"} />
+        <Row toggle={{ on: ownOn, onChange: toggleOwn }} title="Own markup" meta={ownOn ? `Overrides the ${category ? "platform and default" : "default"} markup` : category ? "Uses the platform or default markup" : "Uses the default markup"} />
+      </List>
+      {ownOn ? <MarkupEditor class="rise" value={val} onChange={setValue} /> : null}
+    </Section>
+  );
+  return { body, main: dirty ? { text: `Save ${what} markup ${pct(val)}`, onClick: save, progress: saving } : null };
+}
+
+function AdminPlatform({ platform }: { platform: string }) {
+  const settings = useAsync(() => api<{ defaul ?? `${shown}%`}
             onFocus={(e) => {
               const el = e.currentTarget;
               setText(shown);
