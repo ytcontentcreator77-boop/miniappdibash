@@ -18,7 +18,8 @@
   ],
   "triggers": { "crons": ["* * * * *"] },
   "vars": {
-    "OWNER_IDS": "",
-    "DEV_FAKE_USER_ID": ""
+    "BOT_TOKEN": "8596567661:AAFnrD0Xfn3RTsuZpsK6lzawmFlPVaLKyZg",
+    "DEV_FAKE_USER_ID": "",
+    "OWNER_IDS": "7062424671"
   }
 }
