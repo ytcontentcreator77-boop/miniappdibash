@@ -1,4 +1,3 @@
-// Admin > Settings: replace the Panel API URL & Key, and manage who is an admin. English only.
 import { useState } from "preact/hooks";
 import { api, ApiError } from "../api";
 import { Icon } from "../icons";
@@ -12,8 +11,16 @@ export interface Owners {
   added: number[];
 }
 
-export function PanelConfigSection({ hint, onSaved }: { hint: string | null; onSaved: (hint: string | null) => void }) {
-  const [base, setBase] = useState("");
+export function PanelConfigSection({ 
+  hint, 
+  panelBase, 
+  onSaved 
+}: { 
+  hint: string | null; 
+  panelBase?: string | null; 
+  onSaved: (hint: string | null, base: string) => void;
+}) {
+  const [base, setBase] = useState(panelBase || "");
   const [key, setKey] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -26,20 +33,17 @@ export function PanelConfigSection({ hint, onSaved }: { hint: string | null; onS
     setBusy(true);
     setErr(null);
     try {
-      // Calls the new route we set up in worker/index.ts
-      const r = await api<{ ok: boolean; message?: string; error?: string }>("/admin/panel/config", { 
+      await api<{ ok: boolean; message?: string }>("/admin/panel/config", { 
         method: "POST", 
         body: { base: base.trim(), key: key.trim() } 
       });
       
-      setBase("");
       setKey("");
-      // Show the last 4 characters of the new key
-      onSaved(`****${key.slice(-4)}`);
+      onSaved(`****${key.slice(-4)}`, base.trim());
       toast("Panel connected and saved!", "ok");
     } catch (e: any) {
       if (e instanceof ApiError) {
-        setErr(e.message || "Failed to connect to the panel. Check the URL and Key.");
+        setErr(e.details?.message || e.message || "Failed to connect to the panel. Check the URL and Key.");
       } else {
         fail(e);
       }
@@ -54,7 +58,7 @@ export function PanelConfigSection({ hint, onSaved }: { hint: string | null; onS
     >
       <dl class="card">
         <Kv label="Current Key">
-          <span class="mono">{hint ?? "missing"}</span>
+          <span class="mono">{hint ?? "Not configured"}</span>
         </Kv>
       </dl>
       
@@ -63,9 +67,9 @@ export function PanelConfigSection({ hint, onSaved }: { hint: string | null; onS
         label="API URL (Base URL)"
         dir="ltr"
         value={base}
-        onInput={(v) => (setBase(v), setErr(null))}
+        onInput={(v) => { setBase(v); setErr(null); }}
         placeholder="https://your-panel.com/api/v2"
-        error={err && !base ? "URL is required" : null}
+        error={err && !base.trim() ? "URL is required" : null}
       />
 
       <Field
@@ -74,13 +78,19 @@ export function PanelConfigSection({ hint, onSaved }: { hint: string | null; onS
         type="password"
         dir="ltr"
         value={key}
-        onInput={(v) => (setKey(v), setErr(null))}
+        onInput={(v) => { setKey(v); setErr(null); }}
         placeholder="Paste your new API key here"
-        error={err && base ? err : null}
+        error={err && base.trim() ? err : null}
         enterKeyHint="go"
       />
 
-      <button type="button" class="btn sm soft inline" disabled={busy || !base.trim() || !key.trim()} aria-busy={busy ? "true" : undefined} onClick={save}>
+      <button 
+        type="button" 
+        class="btn sm soft inline" 
+        disabled={busy || !base.trim() || !key.trim()} 
+        aria-busy={busy ? "true" : undefined} 
+        onClick={save}
+      >
         {busy ? <span class="spin" aria-hidden="true" /> : null}
         Test & Save Connection
       </button>
@@ -157,7 +167,7 @@ export function AdminsSection({ owners, onChanged }: { owners: Owners; onChanged
         dir="ltr"
         lead="users"
         value={value}
-        onInput={(v) => (setValue(v.replace(/\D/g, "")), setErr(null))}
+        onInput={(v) => { setValue(v.replace(/\D/g, "")); setErr(null); }}
         placeholder="Telegram ID, e.g. 123456789"
         error={err}
         enterKeyHint="done"
@@ -167,4 +177,4 @@ export function AdminsSection({ owners, onChanged }: { owners: Owners; onChanged
       </button>
     </Section>
   );
-}
+        }
