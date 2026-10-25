@@ -22,6 +22,8 @@ import { syncTick } from "./sync";
 import manualPay from "./manualPay";
 
 api.route("/admin", admin);
+// Mount manualPay INSIDE the api router so it gets the auth middleware
+api.route("/pay", manualPay);
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -29,7 +31,6 @@ const setupOk = (env: Env, given: string) => !!env.SETUP_SECRET && timingSafeEqu
 
 app.route("/api", pub);
 app.route("/api/setup", setup);
-app.route("/api/pay", manualPay);
 app.route("/api", api);
 app.get("/media/:kind", (c) => mediaResponse(c.env, c.req.param("kind"), c.req.query("v")));
 app.get("/media/qr", async (c) => {
