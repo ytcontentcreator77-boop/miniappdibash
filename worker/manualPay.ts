@@ -32,14 +32,12 @@ manualPay.post("/submit", async (c) => {
   }
 
   const s = await getSettings(c.env);
-  let rate = 1_000_000;
+  let rate = 1_000_000; // fallback to USD
   try {
     const list = JSON.parse(s.display_currencies) as { code: string; rate_micro_usd: number }[];
     const found = list.find((x) => x.code === method.currency);
     if (found) rate = found.rate_micro_usd;
-  } catch {
-    /* keep default */
-  }
+  } catch {}
   const credited = Math.round(amount * rate);
 
   const isAuto = method.auto_approve === 1;
@@ -144,7 +142,6 @@ manualPay.post("/admin/:id/decline", async (c) => {
   return c.json({ ok: true });
 });
 
-// Methods CRUD
 manualPay.get("/admin/methods", async (c) => {
   const admin = await requireAdmin(c.env, c.req.header("authorization") ?? "");
   if (!admin) return c.json({ error: "FORBIDDEN", code: "FORBIDDEN" }, 403);
@@ -152,22 +149,10 @@ manualPay.get("/admin/methods", async (c) => {
   return c.json({ methods: results });
 });
 
-interface MethodBody {
-  id?: number;
-  name: string;
-  currency: string;
-  min_amount: number;
-  max_amount: number;
-  description: string;
-  qr_key?: string | null;
-  auto_approve: number;
-  enabled: number;
-}
-
 manualPay.post("/admin/methods", async (c) => {
   const admin = await requireAdmin(c.env, c.req.header("authorization") ?? "");
   if (!admin) return c.json({ error: "FORBIDDEN", code: "FORBIDDEN" }, 403);
-  const b = (await c.req.json().catch(() => null)) as MethodBody | null;
+  const b = (await c.req.json().catch(() => null)) as any;
   if (!b || !b.name || !b.currency) return c.json({ error: "INVALID_BODY", code: "INVALID_BODY" }, 400);
 
   if (b.id) {
@@ -193,7 +178,6 @@ manualPay.delete("/admin/methods/:id", async (c) => {
   return c.json({ ok: true });
 });
 
-// QR upload: raw image body, stored in assets with kind "qr:<id>"
 manualPay.post("/admin/methods/:id/qr", async (c) => {
   const admin = await requireAdmin(c.env, c.req.header("authorization") ?? "");
   if (!admin) return c.json({ error: "FORBIDDEN", code: "FORBIDDEN" }, 403);
@@ -211,6 +195,38 @@ manualPay.post("/admin/methods/:id/qr", async (c) => {
     : bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[8] === 0x57 ? "image/webp"
     : null;
   if (!mime) return c.json({ error: "INVALID_IMAGE", code: "INVALID_IMAGE" }, 400);
+
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x2000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x2000));
+  const b64 = btoa(bin);
+
+  const key = `qr:${id}`;
+  await c.env.DB.batch([
+    c.env.DB.prepare(
+      "INSERT INTO assets (kind, mime, data, updated_at) VALUES (?1, ?2, ?3, unixepoch()) ON CONFLICT(kind) DO UPDATE SET mime = excluded.mime, data = excluded.data, updated_at = excluded.updated_at",
+    ).bind(key, mime, b64),
+    c.env.DB.prepare("UPDATE payment_methods SET qr_key = ?1 WHERE id = ?2").bind(key, id),
+  ]);
+  return c.json({ ok: true, key });
+});
+
+async function requireUser(env: Env, auth: string): Promise<{ id: number } | null> {
+  if (!auth.startsWith("tma ")) return null;
+  const data = await validateInitData(auth.slice(4), env.BOT_TOKEN);
+  if (!data?.user) return null;
+  const row = await env.DB.prepare("SELECT id FROM users WHERE id = ?1 AND banned = 0").bind(data.user.id).first<{ id: number }>();
+  return row ? { id: row.id } : null;
+}
+
+async function requireAdmin(env: Env, auth: string): Promise<{ id: number; settings: Settings } | null> {
+  const u = await requireUser(env, auth);
+  if (!u) return null;
+  const s = await getSettings(env);
+  if (!isOwner(env, s, u.id)) return null;
+  return { id: u.id, settings: s };
+}
+
+export default manualPay;e) return c.json({ error: "INVALID_IMAGE", code: "INVALID_IMAGE" }, 400);
 
   let bin = "";
   for (let i = 0; i < bytes.length; i += 0x2000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x2000));
