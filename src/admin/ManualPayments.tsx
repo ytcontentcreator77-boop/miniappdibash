@@ -120,7 +120,7 @@ function MethodSheet({ m, onClose, onSaved }: { m: PaymentMethod | null; onClose
     haptic.press();
     setBusy(true);
     try {
-      const r = await api<{ ok: boolean; id: number }>("/pay/admin/methods", { method: "POST", body: {
+      await api("/pay/admin/methods", { method: "POST", body: {
         id: m?.id,
         name: name.trim(),
         currency,
@@ -131,10 +131,8 @@ function MethodSheet({ m, onClose, onSaved }: { m: PaymentMethod | null; onClose
         enabled: enabled ? 1 : 0,
         qr_key: m?.qr_key ?? null,
       }});
-      if (uploading) return;
       toast(m ? "Method saved" : "Method added", "ok");
       onSaved();
-      return r;
     } catch (e) {
       fail(e);
       setBusy(false);
@@ -176,4 +174,4 @@ function MethodSheet({ m, onClose, onSaved }: { m: PaymentMethod | null; onClose
       ) : null}
     </Sheet>
   );
-}
+                  }
