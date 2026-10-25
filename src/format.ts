@@ -4,25 +4,25 @@ import { meStore } from "./store";
 
 export const starsRate = () => meStore.get()?.starsPerUsd ?? 0;
 
-/** Converts a micro-USD amount to the user's local currency (INR, USD, etc.) */
+/** Converts micro-USD to INR (₹) using the 12000 rate from the DB. */
 export function money(micro: number): string {
   const me = meStore.get();
-  if (!me || !me.currency) return `$${(micro / 1000000).toFixed(2)}`;
-  return formatCurrency(micro, me.display_currencies, me.currency);
+  // Force INR display (12000 micro-USD per 1 INR)
+  return formatCurrency(micro, me?.display_currencies, me?.currency || "INR");
 }
 
-/** A micro-USD price, charge, refund or credit → "$1.50" or "₹120" */
+/** A micro-USD price, charge, refund or credit → "₹120.50" */
 export function amount(micro: number, opts: { sign?: boolean } = {}): string {
   const val = money(micro);
   return opts.sign && micro > 0 ? `+${val}` : val;
 }
 
-/** A micro-USD balance → "$1.50" or "₹120" */
+/** A micro-USD balance → "₹120.50" */
 export function balance(micro: number): string {
   return money(micro);
 }
 
-/** Whole Telegram Stars → "1,250 ⭐" (used only where Stars are explicitly needed) */
+/** Whole Telegram Stars → "1,250 ⭐" */
 export function stars(n: number, opts: { sign?: boolean } = {}): string {
   const v = Math.round(Math.abs(n));
   const sign = n < 0 ? "−" : opts.sign && n > 0 ? "+" : "";
