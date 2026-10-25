@@ -69,4 +69,4 @@ export function ManualPay() {
       </Screen>
     </>
   );
-}
+      }
