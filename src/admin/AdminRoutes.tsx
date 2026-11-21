@@ -10,6 +10,7 @@ import { refreshMe } from "../me";
 import { back as goBack, enc, navigate } from "../router";
 import { confirmDialog, haptic, openLink, type ButtonSpec } from "../tg";
 import { AdminBranding } from "./Branding";
+import { MessagingAdmin } from "./MessagingAdmin";
 import { AdminsSection, type Owners } from "./Access";
 import { ManualPayments } from "./ManualPayments";
 import {
@@ -20,7 +21,7 @@ import {
 
 export function AdminRoutes({ parts, query }: { parts: string[]; query: URLSearchParams }) {
   const [a, b, c] = parts;
-  if (!a) return <AdminHome />;
+  if (!a || a === "messaging") return <MessagingAdmin />;
   if (a === "prices" && b && c) return <AdminCategory platform={b} category={c} />;
   if (a === "prices" && b) return <AdminPlatform platform={b} />;
   if (a === "prices") return <AdminPrices q={query.get("q") ?? ""} />;
