@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { platformName } from "../../shared/platforms";
-import { balanceStars, MAX_STARS_PER_PAYMENT, shownStars } from "../../shared/stars";
+import { MAX_STARS_PER_PAYMENT, shownStars } from "../../shared/stars";
 import { type Lang } from "../../shared/types";
 import { LIMITS } from "../../shared/brand";
 import { checkImageUpload, deleteAssetStmts, detectImageMime, isAssetKind, putAssetStmts } from "../assets";
@@ -536,7 +536,7 @@ admin.get("/orders", async (c) => {
   ).bind(...vals).all<OrderRow & { user_name: string; username: string | null }>();
   const pg = page(results, (o) => o.id);
   return c.json({
-    items: pg.items.map((o) => ({ ...orderView(o), npOrderId: o.np_order_id, cost: o.cost, rate: o.rate, userId: o.user_id, userName: o.user_name, username: o.username, error: o.error })),
+    items: pg.items.map((o) => ({ ...orderView(o), npOrderId: o.np_order_id, cost: o.cost, userId: o.user_id, userName: o.user_name, username: o.username, error: o.error })),
     next: pg.next,
     starsPerUsd: c.get("settings").stars_per_usd,
   });
