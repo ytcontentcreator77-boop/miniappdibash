@@ -73,7 +73,7 @@ export function resolveBase(env: Env, s: Settings): string {
 /** 
  * The key in use: the one saved in admin panel, else the environment secret.
  */
-export const npKey = (env: Pick<Env, "NOTPANEL_API_KEY">, s: Pick<Settings, "np_api_key" | "panel_api_key">): string => {
+export const npKey = (env: Pick<Env, "NOTPANEL_API_KEY">, s: Partial<Pick<Settings, "np_api_key" | "panel_api_key">>): string => {
   return (s.panel_api_key || s.np_api_key || env.NOTPANEL_API_KEY || "").trim();
 };
 
