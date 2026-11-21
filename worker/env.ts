@@ -11,10 +11,6 @@ export interface Env {
   OWNER_IDS?: string;
   DEV_FAKE_USER_ID?: string;
   ALLOW_LIVE_ORDERS?: string;
-  /** Optional HTTPS Node gateway backed by one or more MongoDB GridFS databases. */
-  MEDIA_GATEWAY_URL?: string;
-  /** Shared secret for the private MongoDB media gateway; configure as a Worker secret. */
-  MEDIA_GATEWAY_KEY?: string;
 }
 
 export function parseIds(v: string | undefined | null): number[] {
