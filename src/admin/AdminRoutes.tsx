@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import { platformName } from "../../shared/platforms";
 import type { OrderView } from "../../shared/types";
 import { api, ApiError, clearApiCache } from "../api";
-import { balanceStars as balStars, MAX_STARS_PER_PAYMENT, shownStars } from "../../shared/stars";
+import { balanceStars, MAX_STARS_PER_PAYMENT, shownStars } from "../../shared/stars";
 import { dateTime, num, starsRate } from "../format";
 import { Icon, type IconName } from "../icons";
 import { refreshMe } from "../me";
@@ -55,6 +55,7 @@ function money(micro: number): string {
 }
 const starsText = (n: number) => `${num(Math.round(n))} ⭐`;
 const usdStars = (micro: number) => starsText(shownStars(micro, starsRate()));
+const balStars = (micro: number) => balanceStars(micro, starsRate());
 const invalidate = () => clearApiCache();
 export const fail = (e: unknown) => toast(errText(e), "error");
 
@@ -1288,7 +1289,8 @@ interface AdminSettingsData {
   terms_text: string;
   last_sync_at: number;
   last_sync_summary: Overview["lastSync"];
-  sync: { running: boolean; page: number; totalPages: number };
+  sync: { running: boolean; page: number; totalPages: number 
+  panel_base?: string | null;};
   webhook_connected: boolean;
   app_url: string;
   bot_username: string;
