@@ -125,7 +125,8 @@ messagingMedia.put("/admin/media-storage", async (c) => {
   const validationError = list.length ? await validateChannels(c.env.BOT_TOKEN, list) : null;
   if (validationError) return err(c, 400, validationError);
   await setSettings(c.env, { media_storage_channels: list.join("\n") } as any);
-  return c.json({ ok: true, channels: list });
+  const legacy = await c.env.DB.prepare("SELECT COUNT(*) AS n FROM message_attachments WHERE data IS NOT NULL").first<{ n: number }>();
+  return c.json({ ok: true, provider: "Telegram private channels", configured: list.length > 0, channels: list, maxBytes: MAX_BYTES, binaryStoredInAppDatabase: false, legacyFilesRemaining: legacy?.n || 0 });
 });
 
 messagingMedia.post("/admin/media-storage/migrate-legacy", async (c) => {
