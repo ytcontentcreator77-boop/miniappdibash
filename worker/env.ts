@@ -2,7 +2,6 @@ import type { Settings } from "./settings";
 
 export interface Env {
   DB: D1Database;
-  MEDIA?: R2Bucket;
   ASSETS: Fetcher;
   /** Telegram bot token from @BotFather. The only credential the setup page asks to see again. */
   BOT_TOKEN: string;
