@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { type AppEnv, err } from "./app";
+import { isOwner } from "../env";
 
 export const messagingMedia = new Hono<AppEnv>();
 const D1_MAX_BYTES = 512 * 1024;
@@ -85,4 +86,17 @@ messagingMedia.get("/files/:id", async (c) => {
     "content-disposition": "inline; filename*=UTF-8''" + encodeURIComponent(a.filename),
     "cache-control": "private, max-age=300", "x-content-type-options": "nosniff"
   }});
+});
+
+messagingMedia.get("/admin/media-storage", async (c) => {
+  if (!isOwner(c.env, c.get("settings"), c.get("user").id)) return err(c, 403, "FORBIDDEN");
+  if (!c.env.MEDIA_GATEWAY_URL || !c.env.MEDIA_GATEWAY_KEY) return c.json({ configured: false, provider: "D1 fallback", maxBytes: D1_MAX_BYTES, pools: [] });
+  try {
+    const response = await fetch(new URL("/health", c.env.MEDIA_GATEWAY_URL), { headers: { authorization: "Bearer " + c.env.MEDIA_GATEWAY_KEY } });
+    if (!response.ok) return c.json({ configured: true, healthy: false, provider: "MongoDB GridFS", pools: [] });
+    const status = await response.json() as { pools?: string[] };
+    return c.json({ configured: true, healthy: true, provider: "MongoDB GridFS", pools: status.pools || [] });
+  } catch {
+    return c.json({ configured: true, healthy: false, provider: "MongoDB GridFS", pools: [] });
+  }
 });
