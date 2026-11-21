@@ -3,16 +3,17 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import { platformName } from "../../shared/platforms";
 import type { OrderView } from "../../shared/types";
 import { api, ApiError, clearApiCache } from "../api";
-import { MAX_STARS_PER_PAYMENT, shownStars } from "../../shared/stars";
+import { balanceStars as balStars, MAX_STARS_PER_PAYMENT, shownStars } from "../../shared/stars";
 import { dateTime, num, starsRate } from "../format";
 import { Icon, type IconName } from "../icons";
 import { refreshMe } from "../me";
 import { back as goBack, enc, navigate } from "../router";
-import { confirmDialog, haptic, openLink, type ButtonSpec } from "../tg";
+import { confirmDialog, haptic, type ButtonSpec } from "../tg";
 import { AdminBranding } from "./Branding";
 import { MessagingAdmin } from "./MessagingAdmin";
-import { AdminsSection, type Owners } from "./Access";
+import { AdminsSection, PanelConfigSection, type Owners } from "./Access";
 import { ManualPayments } from "./ManualPayments";
+import { PanelConfig as AdminPanel } from "./PanelConfig";
 import {
   BackNav, BottomButtons, Chip, EmptyState, ErrorState, Field, LargeTitle, List, Notice,
   Num, PlatformLogo, Presets, Progress, Row, Screen, SearchField, Section, Seg, Sheet,
@@ -1614,7 +1615,7 @@ function AdminSettings() {
             help="Shown in the app and by /terms. Telegram requires terms for Stars payments."
           />
 
-          <NotPanelKeySection hint={s.key_hint} source={s.notpanel_key_source} onSaved={(key_hint) => res.set({ ...res.data!, key_hint })} />
+          <PanelConfigSection hint={s.key_hint} panelBase={s.panel_base} onSaved={(key_hint, panel_base) => res.set({ ...res.data!, key_hint, panel_base })} />
 
           {s.owners ? <AdminsSection owners={s.owners} onChanged={(owners) => res.set({ ...res.data!, owners })} /> : null}
 
