@@ -3,7 +3,7 @@ import "./styles.css";
 import "./art"; // registers the empty-state art with ui.tsx
 import { App, applyStartRoute } from "./app";
 import { keyboardStore } from "./store";
-import { api } from "./api";
+import { api, cachedApi } from "./api";
 import type { PublicStatus } from "../shared/brand";
 import { applyBrand, hasCachedBrand } from "./theme";
 import { savedLang, setLang } from "./i18n";
@@ -18,6 +18,8 @@ if (initData && !hasCachedBrand) api<PublicStatus>("/public").then((p) => applyB
 // Load translations in parallel with /api/me (no English flash); the /me result still wins afterwards.
 void setLang(savedLang() ?? (globalThis as any).Telegram?.WebApp?.initDataUnsafe?.user?.language_code);
 
+// Start the platform list now, in parallel with /api/me; Home reuses this in-flight request.
+if (initData || import.meta.env.DEV) cachedApi("/catalog/platforms").catch(() => {});
 
 // iOS WebKit applies :active (press states) only when the page has a touch listener.
 document.addEventListener("touchstart", () => {}, { passive: true });
