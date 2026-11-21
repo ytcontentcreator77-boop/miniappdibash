@@ -1,4 +1,5 @@
 // Rich bot messages: the photo welcome, help, and an owner-only preview of every message type.
+import { formatCurrency } from "../shared/stars";
 import { langLabel, type Lang } from "../shared/types";
 import type { Env } from "./env";
 import { validHttpsUrl } from "../shared/brand";
