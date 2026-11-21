@@ -12,7 +12,7 @@ export function PanelConfig() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ base, key })
     });
-    const data = await res.json();
+    const data = await res.json() as { error?: string };
     if (res.ok) setMsg("Saved successfully! Catalog will sync on next cron.");
     else setMsg("Error: " + data.error);
   };
