@@ -172,7 +172,6 @@ export async function onSuccessfulPayment(
     await env.DB.prepare("UPDATE payments SET order_id = ?2 WHERE id = ?1").bind(p.id, order.id).run();
     
     // Format the charge in the user's chosen currency for the order placed message
-    const chargeFormatted = formatCurrency(order.charge, s.display_currencies, activeCur);
     
     await tg(env.BOT_TOKEN, "sendMessage", {
       chat_id: p.user_id,

@@ -1,14 +1,6 @@
 import { Hono } from "hono";
-import { LANGS, pickLang } from "../shared/types";
-import { timingSafeEqual } from "./auth";
-import { sendPreviews } from "./botMessages";
-import { checkChannel } from "./growth";
-import { connectAll, syncBotTexts } from "./connect";
-import { ownerIds } from "./env";
 import { mediaResponse } from "./assets";
 import { pub, setup } from "./routes/setup";
-import { getSettings } from "./settings";
-import { emojiFallbacks, tg } from "./telegram";
 import type { Env } from "./env";
 import { pollOpenOrders } from "./orders";
 import { cleanupPendingPayments } from "./payments";
@@ -20,13 +12,20 @@ import { commandsTick } from "./commands";
 import { cleanupRateLimits } from "./rateLimit";
 import { syncTick } from "./sync";
 import manualPay from "./manualPay";
+import { messaging } from "./routes/messaging";
+import { messagingPlus } from "./routes/messaging_plus";
+import { messagingActions } from "./routes/messaging_actions";
+import { messagingMedia } from "./routes/messaging_media";
 
 // Mount manualPay directly on the app so it bypasses the strict /api auth
 const app = new Hono<{ Bindings: Env }>();
 app.route("/api/pay", manualPay);
 
 api.route("/admin", admin);
-const setupOk = (env: Env, given: string) => !!env.SETUP_SECRET && timingSafeEqual(given, env.SETUP_SECRET);
+api.route("/messaging", messaging);
+api.route("/messaging", messagingPlus);
+api.route("/messaging", messagingActions);
+api.route("/messaging", messagingMedia);
 
 app.route("/api", pub);
 app.route("/api/setup", setup);

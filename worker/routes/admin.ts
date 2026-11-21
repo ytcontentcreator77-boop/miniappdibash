@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { platformName } from "../../shared/platforms";
-import { balanceStars, MAX_STARS_PER_PAYMENT, shownStars } from "../../shared/stars";
+import { MAX_STARS_PER_PAYMENT, shownStars } from "../../shared/stars";
 import { type Lang } from "../../shared/types";
 import { LIMITS } from "../../shared/brand";
 import { checkImageUpload, deleteAssetStmts, detectImageMime, isAssetKind, putAssetStmts } from "../assets";
@@ -536,23 +536,18 @@ admin.get("/orders", async (c) => {
   ).bind(...vals).all<OrderRow & { user_name: string; username: string | null }>();
   const pg = page(results, (o) => o.id);
   return c.json({
-    items: pg.items.map((o) => ({ ...orderView(o), npOrderId: o.np_order_id, cost: o.cost, rate: o.rate, userId: o.user_id, userName: o.user_name, username: o.username, error: o.error })),
+    items: pg.items.map((o) => ({ ...orderView(o), npOrderId: o.np_order_id, cost: o.cost, userId: o.user_id, userName: o.user_name, username: o.username, error: o.error })),
     next: pg.next,
     starsPerUsd: c.get("settings").stars_per_usd,
   });
 });
 
-export async function connect(c: any) {
-  const r = await connectAll(c.env, new URL(c.req.url).origin);
-  for (let batch: number | null = 0; batch !== null; ) batch = (await syncBotTexts(c.env, batch)).next;
-  await registerNotPanelWebhook(c.env);
-  return c.json({ ok: true, ...r });
-}
-
 admin.post("/connect", async (c) => {
-  const r = await connectAll(c.env, new URL(c.req.url).origin);
-  const np = await registerNotPanelWebhook(c.env);
-  return c.json({ ok: true, bot: c.get("settings").bot_username, notpanelWebhook: np ?? true });
+  const origin = new URL(c.req.url).origin;
+  await connectAll(c.env, origin);
+  const np = await registerNotPanelWebhook(c.env, c.get("settings"), origin);
+  if (np.values) await setSettings(c.env, np.values);
+  return c.json({ ok: true, bot: c.get("settings").bot_username, notpanelWebhook: !np.error, webhookError: np.error ?? null });
 });
 
 admin.post("/bot-texts/:batch", async (c) => {

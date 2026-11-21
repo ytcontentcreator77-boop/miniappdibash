@@ -4,7 +4,7 @@ import { api } from "../api";
 import { dateTime, num } from "../format";
 import { Page, fail } from "./AdminRoutes";
 import {
-  Chip, EmptyState, ErrorState, Field, List, Notice, Num, Row, Section, Seg, Sheet, SkeletonList, Switch, toast, useAsync,
+  EmptyState, ErrorState, Field, List, Notice, Num, Row, Section, Seg, Sheet, SkeletonList, toast, useAsync,
 } from "../ui";
 import { haptic } from "../tg";
 
