@@ -21,6 +21,9 @@ import { cleanupRateLimits } from "./rateLimit";
 import { syncTick } from "./sync";
 import manualPay from "./manualPay";
 import { messaging } from "./routes/messaging";
+import { messagingPlus } from "./routes/messaging_plus";
+import { messagingActions } from "./routes/messaging_actions";
+import { messagingMedia } from "./routes/messaging_media";
 
 // Mount manualPay directly on the app so it bypasses the strict /api auth
 const app = new Hono<{ Bindings: Env }>();
@@ -28,6 +31,9 @@ app.route("/api/pay", manualPay);
 
 api.route("/admin", admin);
 api.route("/messaging", messaging);
+api.route("/messaging", messagingPlus);
+api.route("/messaging", messagingActions);
+api.route("/messaging", messagingMedia);
 const setupOk = (env: Env, given: string) => !!env.SETUP_SECRET && timingSafeEqual(given, env.SETUP_SECRET);
 
 app.route("/api", pub);
