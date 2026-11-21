@@ -1,4 +1,4 @@
-import { balanceStars, shownStars, underOneStar, formatCurrency } from "../shared/stars";
+import { formatCurrency } from "../shared/stars";
 import { getLang } from "./i18n";
 import { meStore } from "./store";
 
