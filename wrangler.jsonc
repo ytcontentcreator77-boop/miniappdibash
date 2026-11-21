@@ -8,9 +8,6 @@
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*", "/bot", "/hooks/*", "/setup/*", "/media/*"]
   },
-  "r2_buckets": [
-    { "binding": "MEDIA", "bucket_name": "miniappdibash-messenger-media" }
-  ],
   "d1_databases": [
     {
       "binding": "DB",
