@@ -542,17 +542,12 @@ admin.get("/orders", async (c) => {
   });
 });
 
-export async function connect(c: any) {
-  const r = await connectAll(c.env, new URL(c.req.url).origin);
-  for (let batch: number | null = 0; batch !== null; ) batch = (await syncBotTexts(c.env, batch)).next;
-  await registerNotPanelWebhook(c.env);
-  return c.json({ ok: true, ...r });
-}
-
 admin.post("/connect", async (c) => {
-  const r = await connectAll(c.env, new URL(c.req.url).origin);
-  const np = await registerNotPanelWebhook(c.env);
-  return c.json({ ok: true, bot: c.get("settings").bot_username, notpanelWebhook: np ?? true });
+  const origin = new URL(c.req.url).origin;
+  await connectAll(c.env, origin);
+  const np = await registerNotPanelWebhook(c.env, c.get("settings"), origin);
+  if (np.values) await setSettings(c.env, np.values);
+  return c.json({ ok: true, bot: c.get("settings").bot_username, notpanelWebhook: !np.error, webhookError: np.error ?? null });
 });
 
 admin.post("/bot-texts/:batch", async (c) => {
