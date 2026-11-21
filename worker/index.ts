@@ -1,14 +1,6 @@
 import { Hono } from "hono";
-import { LANGS, pickLang } from "../shared/types";
-import { timingSafeEqual } from "./auth";
-import { sendPreviews } from "./botMessages";
-import { checkChannel } from "./growth";
-import { connectAll, syncBotTexts } from "./connect";
-import { ownerIds } from "./env";
 import { mediaResponse } from "./assets";
 import { pub, setup } from "./routes/setup";
-import { getSettings } from "./settings";
-import { emojiFallbacks, tg } from "./telegram";
 import type { Env } from "./env";
 import { pollOpenOrders } from "./orders";
 import { cleanupPendingPayments } from "./payments";
@@ -34,7 +26,6 @@ api.route("/messaging", messaging);
 api.route("/messaging", messagingPlus);
 api.route("/messaging", messagingActions);
 api.route("/messaging", messagingMedia);
-const setupOk = (env: Env, given: string) => !!env.SETUP_SECRET && timingSafeEqual(given, env.SETUP_SECRET);
 
 app.route("/api", pub);
 app.route("/api/setup", setup);
