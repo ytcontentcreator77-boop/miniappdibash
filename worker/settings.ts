@@ -19,6 +19,7 @@ export const DEFAULTS = {
   channel_url: "",
   channel_id: "",
   channel_gate: 1,
+  media_storage_channels: "",
   referral_enabled: 1,
   referral_reward_stars: 3,
   referral_daily_cap: 50,
