@@ -3,6 +3,8 @@ import { api } from "../api";
 import { navigate,back,useRoute } from "../router";
 import { BrandMark } from "../ui";
 import { meStore } from "../store";
+import { Communities, SpaceChat } from "./Communities";
+import { ChatAttachments } from "./ChatAttachments";
 type User={id:number;name:string;username:string|null;photoUrl:string|null;bio?:string;premium:boolean;online:boolean;lastActiveAt?:number};
 type Thread={threadId:number;user:User;lastMessage:string;lastSenderId:number|null;messageAt:number|null;updatedAt:number;unread:number};
 type Msg={id:number;sender_id:number;body:string;deleted:boolean;created_at:number;edited_at:number|null;reactions:string[];attachment_id?:number|null;kind?:string};
