@@ -1289,14 +1289,14 @@ interface AdminSettingsData {
   terms_text: string;
   last_sync_at: number;
   last_sync_summary: Overview["lastSync"];
-  sync: { running: boolean; page: number; totalPages: number 
-  panel_base?: string | null;};
+  sync: { running: boolean; page: number; totalPages: number };
   webhook_connected: boolean;
   app_url: string;
   bot_username: string;
   key_hint: string | null;
   notpanel_key_source?: "env" | "saved";
   owners?: Owners;
+  panel_base?: string | null;
 }
 
 /**
